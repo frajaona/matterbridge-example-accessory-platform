@@ -34,9 +34,9 @@ export class ExampleMatterbridgeAccessoryPlatform extends MatterbridgeAccessoryP
   override async onStart(reason?: string) {
     this.log.info('onStart called with reason:', reason ?? 'none');
 
-    this.cover = new MatterbridgeDevice(DeviceTypes.WINDOW_COVERING, { uniqueStorageKey: 'Cover example device' }, this.config.debug as boolean);
+    this.cover = new MatterbridgeDevice(DeviceTypes.WINDOW_COVERING, { uniqueStorageKey: 'Fake HTTP Cover device' }, this.config.debug as boolean);
     this.cover.createDefaultIdentifyClusterServer();
-    this.cover.createDefaultBasicInformationClusterServer('Cover example device', `0x59108853594}`, 0xfff1, 'Matterbridge', 0x0001, 'Matterbridge Cover');
+    this.cover.createDefaultBasicInformationClusterServer('Fake HTTP Cover device', `0x59108853594}`, 0xfff1, 'Matterbridge', 0x0001, 'Matterbridge Cover');
     this.cover.createDefaultWindowCoveringClusterServer(10000);
 
     this.cover.addDeviceType(powerSource);
@@ -88,6 +88,10 @@ export class ExampleMatterbridgeAccessoryPlatform extends MatterbridgeAccessoryP
     });
 
     this.cover.addCommandHandler('goToLiftPercentage', async ({ request: { liftPercent100thsValue } }) => {
+      let currentPosition = this.cover.getAttribute(WindowCoveringCluster.id, 'currentPositionLiftPercent100ths', this.log);
+      if (isValidNumber(currentPosition, 0, 10000)) {
+        await this.sendHttpRequest(currentPosition, liftPercent100thsValue);
+      }
       await this.cover?.setWindowCoveringCurrentTargetStatus(liftPercent100thsValue, liftPercent100thsValue, WindowCovering.MovementStatus.Stopped);
       this.cover?.log.info(`Command goToLiftPercentage ${liftPercent100thsValue} called`);
     });
@@ -115,5 +119,24 @@ export class ExampleMatterbridgeAccessoryPlatform extends MatterbridgeAccessoryP
     this.log.info('onShutdown called with reason:', reason ?? 'none');
     clearInterval(this.coverInterval);
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
+  }
+
+  async sendHttpRequest(oldPosition: number, position: number) {
+    try {
+      const endpoint = oldPosition > position
+        ? 'http://0.0.0.0:8282/hubs/hhub/devices/naim-amplificateur/commands/volume-up'
+        : 'http://0.0.0.0:8282/hubs/hhub/devices/naim-amplificateur/commands/volume-down';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      const data = await response.json();
+      this.log.info('HTTP Response:', data);
+    } catch (error) {
+      this.log.error('HTTP Request failed:', error);
+    }
   }
 }
