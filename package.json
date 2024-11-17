@@ -1,8 +1,8 @@
 {
-  "name": "matterbridge-example-accessory-platform",
-  "version": "1.0.19",
-  "description": "Matterbridge accessory plugin",
-  "author": "https://github.com/Luligu",
+  "name": "matterbridge-fake-http",
+  "version": "1.0.0",
+  "description": "Matterbridge fake http",
+  "author": "https://github.com/frajaona",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
